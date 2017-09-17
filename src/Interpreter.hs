@@ -3,34 +3,17 @@ module Interpreter
     ) where
 
 import Data.Maybe
-import Data.Word
 import Data.Vector (Vector, (!))
 import qualified Data.Vector as Vector
 import System.IO
+
+import DataPointer
 
 run :: [Char] -> IO()
 run = runProgram . Vector.fromList . mapMaybe parseCommand
 
 data Command = DEBUG | NextCell | PrevCell | Increment | Decrement | Write | Read | ForwardJumpIfZero | BackWardJumpIfNonZero
     deriving (Show)
-
-data DataPointer = DataPointer {previousCells :: [Word8], currentCell :: Word8, nextCells :: [Word8]}
-    deriving (Show)
-
-nextCell :: DataPointer -> DataPointer
-nextCell (DataPointer previous current [])     = DataPointer (current : previous) 0 []
-nextCell (DataPointer previous current (n:ns)) = DataPointer (current : previous) n ns
-
-prevCell :: DataPointer -> DataPointer
-prevCell (DataPointer [] current next) = DataPointer [] 0 (current : next)
-prevCell (DataPointer (p:ps) current next) = DataPointer ps p (current : next)
-
-incrementCurrent :: DataPointer -> DataPointer
-incrementCurrent (DataPointer previous current next) = DataPointer previous (current + 1) next
-
-decrementCurrent :: DataPointer -> DataPointer
-decrementCurrent (DataPointer previous current next) = DataPointer previous (current - 1) next
-
 
 parseCommand :: Char -> Maybe Command
 parseCommand '>' = Just NextCell
@@ -54,7 +37,6 @@ loop commands pc dataPointer
     | pc >= Vector.length commands = return ()
     | otherwise            = let (newPC, newDataPointer, action) = processCommand (commands ! pc) commands pc dataPointer
                              in action >> loop commands newPC newDataPointer
-
 
 processCommand :: Command -> Vector Command -> Int -> DataPointer -> (Int, DataPointer, IO ())
 processCommand NextCell  commands pc dataPointer = (pc + 1, nextCell dataPointer, return ())
