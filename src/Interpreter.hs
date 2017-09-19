@@ -13,7 +13,7 @@ run :: [Char] -> IO()
 run = runProgram . Vector.fromList . mapMaybe parseCommand
 
 data Command = DEBUG | NextCell | PrevCell | Increment | Decrement | Write | Read | ForwardJumpIfZero | BackWardJumpIfNonZero
-    deriving (Show)
+    deriving (Show, Eq)
 
 parseCommand :: Char -> Maybe Command
 parseCommand '>' = Just NextCell
@@ -44,4 +44,34 @@ processCommand PrevCell  commands pc dataPointer = (pc + 1, prevCell dataPointer
 processCommand Increment commands pc dataPointer = (pc + 1, incrementCurrent dataPointer, return ())
 processCommand Decrement commands pc dataPointer = (pc + 1, decrementCurrent dataPointer, return ())
 processCommand Write     commands pc dataPointer = (pc + 1, dataPointer, putChar (toEnum . fromEnum $ currentCell dataPointer) >> hFlush stdout)
+processCommand ForwardJumpIfZero commands pc dataPointer | currentCell dataPointer == 0 = (forwardJump commands pc, dataPointer, return ())
+                                                         | otherwise = (pc + 1, dataPointer, return ())
+processCommand BackWardJumpIfNonZero commands pc dataPointer | currentCell dataPointer /= 0 = (backwardJump commands pc, dataPointer, return ())
+                                                             | otherwise = (pc + 1, dataPointer, return ())
+
 processCommand DEBUG     commands pc dataPointer = (pc + 1, dataPointer, print dataPointer >> hFlush stdout)
+
+forwardJump :: Vector Command -> Int -> Int
+forwardJump commands pc =
+    findMatch commands (pc + 1) 1
+  where
+    findMatch commands pc 0 = pc
+    findMatch commands pc nestingLevel
+        | nestingLevel < 0 = error "Code error: negative nesting level"
+        | pc >= Vector.length commands = error "Unmatched '['"
+        | commands ! pc == ForwardJumpIfZero = findMatch commands (pc + 1) (nestingLevel + 1)
+        | commands ! pc == BackWardJumpIfNonZero = findMatch commands (pc + 1) (nestingLevel - 1)
+        | otherwise = findMatch commands (pc + 1) nestingLevel
+
+backwardJump :: Vector Command -> Int -> Int
+backwardJump commands pc =
+    findMatch commands (pc - 1) 1
+  where
+    findMatch commands pc 0 = pc
+    findMatch commands pc nestingLevel
+        | nestingLevel < 0 = error "Code error: negative nesting level"
+        | pc < 0 = error "Unmatched ']'"
+        | commands ! pc == ForwardJumpIfZero && nestingLevel == 1 = pc
+        | commands ! pc == ForwardJumpIfZero = findMatch commands (pc - 1) (nestingLevel - 1)
+        | commands ! pc == BackWardJumpIfNonZero = findMatch commands (pc - 1) (nestingLevel + 1)
+        | otherwise = findMatch commands (pc - 1) nestingLevel
