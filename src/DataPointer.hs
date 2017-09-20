@@ -18,3 +18,11 @@ incrementCurrent (DataPointer previous current next) = DataPointer previous (cur
 
 decrementCurrent :: DataPointer -> DataPointer
 decrementCurrent (DataPointer previous current next) = DataPointer previous (current - 1) next
+
+
+setCurrent :: DataPointer -> Word8 -> DataPointer
+setCurrent dataPointer newValue = dataPointer {currentCell = newValue}
+
+zero :: DataPointer -> Bool
+zero (DataPointer _ 0 _) = True
+zero _                   = False
