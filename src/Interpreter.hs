@@ -6,11 +6,12 @@ import Data.Maybe
 import Data.Vector (Vector, (!))
 import qualified Data.Vector as Vector
 import System.IO
+import Data.ByteString.Lazy
 
 import DataPointer
 
-run :: [Char] -> IO()
-run = runProgram . Vector.fromList . mapMaybe parseCommand
+run :: [Char] -> ByteString -> IO()
+run program input = runProgram (Vector.fromList $ mapMaybe parseCommand program) input
 
 data Command = DEBUG | NextCell | PrevCell | Increment | Decrement | Write | Read | ForwardJumpIfZero | BackWardJumpIfNonZero
     deriving (Show, Eq)
@@ -27,29 +28,29 @@ parseCommand ']' = Just BackWardJumpIfNonZero
 parseCommand '*' = Just DEBUG
 parseCommand  _  = Nothing
 
-runProgram :: Vector Command -> IO()
-runProgram code
+runProgram :: Vector Command -> ByteString -> IO()
+runProgram code input
     | Vector.null code = return ()
-    | otherwise = loop code 0 (DataPointer [] 0 [])
+    | otherwise = loop code 0 (DataPointer [] 0 []) input
 
-loop :: Vector Command -> Int -> DataPointer -> IO()
-loop commands pc dataPointer
+loop :: Vector Command -> Int -> DataPointer -> ByteString -> IO()
+loop commands pc dataPointer input
     | pc >= Vector.length commands = return ()
-    | otherwise = let (newPC, newDataPointer, action) = processCommand (commands ! pc) commands pc dataPointer
-                  in action >> loop commands newPC newDataPointer
+    | otherwise = let (newPC, newDataPointer, newInput, action) = processCommand (commands ! pc) commands pc dataPointer input
+                  in action >> loop commands newPC newDataPointer newInput
 
-processCommand :: Command -> Vector Command -> Int -> DataPointer -> (Int, DataPointer, IO ())
-processCommand NextCell  commands pc dataPointer = (pc + 1, nextCell dataPointer, return ())
-processCommand PrevCell  commands pc dataPointer = (pc + 1, prevCell dataPointer, return ())
-processCommand Increment commands pc dataPointer = (pc + 1, incrementCurrent dataPointer, return ())
-processCommand Decrement commands pc dataPointer = (pc + 1, decrementCurrent dataPointer, return ())
-processCommand Write     commands pc dataPointer = (pc + 1, dataPointer, putChar (toEnum . fromEnum $ currentCell dataPointer) >> hFlush stdout)
-processCommand ForwardJumpIfZero commands pc dataPointer | currentCell dataPointer == 0 = (forwardJump commands pc, dataPointer, return ())
-                                                         | otherwise = (pc + 1, dataPointer, return ())
-processCommand BackWardJumpIfNonZero commands pc dataPointer | currentCell dataPointer /= 0 = (backwardJump commands pc, dataPointer, return ())
-                                                             | otherwise = (pc + 1, dataPointer, return ())
+processCommand :: Command -> Vector Command -> Int -> DataPointer -> ByteString -> (Int, DataPointer, ByteString, IO ())
+processCommand NextCell  commands pc dataPointer input = (pc + 1, nextCell dataPointer, input, return ())
+processCommand PrevCell  commands pc dataPointer input = (pc + 1, prevCell dataPointer, input, return ())
+processCommand Increment commands pc dataPointer input = (pc + 1, incrementCurrent dataPointer, input, return ())
+processCommand Decrement commands pc dataPointer input = (pc + 1, decrementCurrent dataPointer, input, return ())
+processCommand Write     commands pc dataPointer input = (pc + 1, dataPointer, input, putChar (toEnum . fromEnum $ currentCell dataPointer) >> hFlush stdout)
+processCommand ForwardJumpIfZero commands pc dataPointer input | currentCell dataPointer == 0 = (forwardJump commands pc, dataPointer, input, return ())
+                                                               | otherwise = (pc + 1, dataPointer, input, return ())
+processCommand BackWardJumpIfNonZero commands pc dataPointer input | currentCell dataPointer /= 0 = (backwardJump commands pc, dataPointer, input, return ())
+                                                                   | otherwise = (pc + 1, dataPointer, input, return ())
 
-processCommand DEBUG     commands pc dataPointer = (pc + 1, dataPointer, print dataPointer >> hFlush stdout)
+processCommand DEBUG     commands pc dataPointer input = (pc + 1, dataPointer, input, print dataPointer >> hFlush stdout)
 
 forwardJump :: Vector Command -> Int -> Int
 forwardJump commands pc =
