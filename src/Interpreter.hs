@@ -2,6 +2,7 @@ module Interpreter
     ( run
     ) where
 
+import Prelude hiding (head, tail)
 import Data.Maybe
 import Data.Vector (Vector, (!))
 import qualified Data.Vector as Vector
@@ -45,6 +46,7 @@ processCommand PrevCell  commands pc dataPointer input = (pc + 1, prevCell dataP
 processCommand Increment commands pc dataPointer input = (pc + 1, incrementCurrent dataPointer, input, return ())
 processCommand Decrement commands pc dataPointer input = (pc + 1, decrementCurrent dataPointer, input, return ())
 processCommand Write     commands pc dataPointer input = (pc + 1, dataPointer, input, putChar (toEnum . fromEnum $ currentCell dataPointer) >> hFlush stdout)
+processCommand Read      commands pc dataPointer input = (pc + 1, setCurrent dataPointer $ head input, tail input, return ())
 processCommand ForwardJumpIfZero commands pc dataPointer input | currentCell dataPointer == 0 = (forwardJump commands pc, dataPointer, input, return ())
                                                                | otherwise = (pc + 1, dataPointer, input, return ())
 processCommand BackWardJumpIfNonZero commands pc dataPointer input | currentCell dataPointer /= 0 = (backwardJump commands pc, dataPointer, input, return ())
