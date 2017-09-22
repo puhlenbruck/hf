@@ -6,11 +6,15 @@ data DataPointer = DataPointer {previousCells :: [Word8], currentCell :: Word8, 
     deriving (Show)
 
 nextCell :: DataPointer -> DataPointer
+nextCell dp@(DataPointer [] 0 [])              = dp
 nextCell (DataPointer previous current [])     = DataPointer (current : previous) 0 []
+nextCell (DataPointer [] 0 (n:ns))             = DataPointer [] n ns
 nextCell (DataPointer previous current (n:ns)) = DataPointer (current : previous) n ns
 
 prevCell :: DataPointer -> DataPointer
-prevCell (DataPointer [] current next) = DataPointer [] 0 (current : next)
+prevCell dp@(DataPointer [] 0 [])          = dp
+prevCell (DataPointer [] current next)     = DataPointer [] 0 (current : next)
+prevCell (DataPointer (p:ps) 0 [])         = DataPointer ps p []
 prevCell (DataPointer (p:ps) current next) = DataPointer ps p (current : next)
 
 incrementCurrent :: DataPointer -> DataPointer
