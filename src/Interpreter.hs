@@ -2,6 +2,7 @@ module Interpreter
     ( run
     ) where
 
+import Data.Word
 import Prelude hiding (head, tail)
 import Data.Maybe
 import Data.Vector (Vector, (!))
@@ -46,13 +47,18 @@ processCommand PrevCell  commands pc dataPointer input = (pc + 1, prevCell dataP
 processCommand Increment commands pc dataPointer input = (pc + 1, incrementCurrent dataPointer, input, return ())
 processCommand Decrement commands pc dataPointer input = (pc + 1, decrementCurrent dataPointer, input, return ())
 processCommand Write     commands pc dataPointer input = (pc + 1, dataPointer, input, putChar (toEnum . fromEnum $ currentCell dataPointer) >> hFlush stdout)
-processCommand Read      commands pc dataPointer input = (pc + 1, setCurrent dataPointer $ head input, tail input, return ())
+processCommand Read      commands pc dataPointer input = let (newValue, newInput) = readByteIfStreamOpen (currentCell dataPointer) input
+                                                         in (pc + 1, setCurrent dataPointer newValue, newInput, return ())
 processCommand ForwardJumpIfZero commands pc dataPointer input | currentCell dataPointer == 0 = (forwardJump commands pc, dataPointer, input, return ())
                                                                | otherwise = (pc + 1, dataPointer, input, return ())
 processCommand BackWardJumpIfNonZero commands pc dataPointer input | currentCell dataPointer /= 0 = (backwardJump commands pc, dataPointer, input, return ())
                                                                    | otherwise = (pc + 1, dataPointer, input, return ())
 
 processCommand DEBUG     commands pc dataPointer input = (pc + 1, dataPointer, input, print dataPointer >> hFlush stdout)
+
+readByteIfStreamOpen :: Word8 -> ByteString -> (Word8, ByteString)
+readByteIfStreamOpen currentValue input = fromMaybe (currentValue, input) $ uncons input
+
 
 forwardJump :: Vector Command -> Int -> Int
 forwardJump commands pc =
