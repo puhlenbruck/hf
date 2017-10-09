@@ -1,3 +1,10 @@
+{- |
+Module      :  DataPointer
+Description :  Data type representing the byte array containing the internal
+state of the interpreter
+Copyright   :  (c) Peter Uhlenbruck 2017
+License     :  MIT Licence
+-}
 module DataPointer where
 
 import Data.Word

@@ -1,3 +1,9 @@
+{- |
+Module      :  Interpreter
+Description :  Main interpreter logic.  Tokenizes and runs commands.
+Copyright   :  (c) Peter Uhlenbruck 2017
+License     :  MIT Licence
+-}
 module Interpreter
     ( run
     ) where

@@ -1,3 +1,9 @@
+{- |
+Module      :  Main
+Description :  Entry point.  Parses command line arguments and runs program
+Copyright   :  (c) Peter Uhlenbruck 2017
+License     :  MIT Licence
+-}
 module Main where
 
 import System.Environment
